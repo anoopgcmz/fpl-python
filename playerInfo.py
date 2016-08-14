@@ -15,6 +15,7 @@ ID_TEST = 1
 yala_on_scasse_league_id = 336217
 reddit_pl_url = 1459
 test_entry_id = 2677936
+didNotPassByGuy = True
 
 # player data: https://fantasy.premierleague.com/drf/bootstrap-static   (download it in a local file!)
 
@@ -25,12 +26,20 @@ def getUserEntryIds(league_id, ls_page):
 	jsonResponse = r.json()
 	standings = jsonResponse["standings"]["results"]
 	if not standings:
+		print("no more standings found!")
 		return None
 
 	entries = []
 
 	for player in standings:
-		entries.append(player["entry"])
+		# not sure if needed because probably we re not passing many times by Guy
+		if player["entry"] == 1313896:
+			if didNotPassByGuy:
+				didNotPassByGuy = False
+				print("passing by Guy")
+				entries.append(player["entry"])
+		else:
+			entries.append(player["entry"])
 
 	return entries
 
@@ -52,6 +61,13 @@ def getAllPlayersDetailedJson():
 		d = json.load(json_data)
 		return d
 
+def writeToFile(countOfplayersPicked):
+	with open('result.csv','w') as out:
+		csv_out = csv.writer(out)
+		csv_out.writerow(['name','num'])
+		for row in countOfplayersPicked:
+			csv_out.writerow(row)
+
 
 playerElementIdToNameMap = {}
 allPlayers = getAllPlayersDetailedJson()
@@ -60,14 +76,17 @@ for element in allPlayers["elements"]:
 
 
 countOfplayersPicked = {}
+totalNumberOfPlayersCount = 0
 pageCount = 1
 while(True):
 	try:
 		entries = getUserEntryIds(reddit_pl_url, pageCount)
+		totalNumberOfPlayersCount += len(entries)
 		if entries is None:
+			print("breaking as no more player entries")
 			break
 
-		print("parsing pageCount: " + str(pageCount))
+		print("parsing pageCount: " + str(pageCount) + " with total number of players so far:" + str(totalNumberOfPlayersCount))
 		for entry in entries:
 			elements = getplayersPickedForEntryId(entry)
 			for element in elements:
@@ -76,17 +95,12 @@ while(True):
 					countOfplayersPicked[name] += 1
 				else:
 					countOfplayersPicked[name] = 1
+
+		listOfcountOfplayersPicked = sorted(countOfplayersPicked.items(), key=lambda x: x[1], reverse=True)
+		writeToFile(listOfcountOfplayersPicked)
 		pageCount += 1
 	except:
 		pass
-
-listOfcountOfplayersPicked = sorted(countOfplayersPicked.items(), key=lambda x: x[1], reverse=True)
-
-with open('result.csv','w') as out:
-    csv_out=csv.writer(out)
-    csv_out.writerow(['name','num'])
-    for row in listOfcountOfplayersPicked:
-        csv_out.writerow(row)
 
 #print sorted(countOfplayersPicked.items(), key=lambda x: x[1])
 # print countOfplayersPicked
