@@ -1,4 +1,6 @@
 import requests
+import json
+import csv
 
 FPL_URL = "https://fantasy.premierleague.com/drf/"
 USER_SUMMARY_SUBURL = "element-summary/"
@@ -11,16 +13,20 @@ LEAGUE_STANDING_URL = FPL_URL + LEAGUE_STANDING_SUBURL
 ID_TEST = 1
 
 yala_on_scasse_league_id = 336217
+reddit_pl_url = 1459
 test_entry_id = 2677936
 
 # player data: https://fantasy.premierleague.com/drf/bootstrap-static   (download it in a local file!)
 
-# https://fantasy.premierleague.com/drf/leagues-classic-standings/336217
-def getUserEntryIds(league_id): 
-	league_url = LEAGUE_STANDING_URL + str(league_id)
+# https://fantasy.premierleague.com/drf/leagues-classic-standings/336217?phase=1&le-page=1&ls-page=5
+def getUserEntryIds(league_id, ls_page): 
+	league_url = LEAGUE_STANDING_URL + str(league_id) + "?phase=1&le-page=1&ls-page=" + str(ls_page)
 	r = requests.get(league_url)
 	jsonResponse = r.json()
 	standings = jsonResponse["standings"]["results"]
+	if not standings:
+		return None
+
 	entries = []
 
 	for player in standings:
@@ -28,6 +34,7 @@ def getUserEntryIds(league_id):
 
 	return entries
 
+# team pick example https://fantasy.premierleague.com/drf/entry/2677936/event/1/picks with 2677936 being entry_id of the player
 def getplayersPickedForEntryId(entry_id):
 	playerTeamUrlForSpecificGW = FPL_URL + TEAM_ENTRY_SUBURL + str(entry_id) + "/" + EVENT_SUBURL
 	r = requests.get(playerTeamUrlForSpecificGW)
@@ -40,16 +47,46 @@ def getplayersPickedForEntryId(entry_id):
 
 	return elements
 
-# team pick example https://fantasy.premierleague.com/drf/entry/2677936/event/1/picks with 2677936 being entry_id of the player
+def getAllPlayersDetailedJson():
+	with open('allPlayersInfo.json') as json_data:
+		d = json.load(json_data)
+		return d
+
+
+playerElementIdToNameMap = {}
+allPlayers = getAllPlayersDetailedJson()
+for element in allPlayers["elements"]:
+	playerElementIdToNameMap[element["id"]] = element["web_name"].encode('ascii','ignore')
+
 
 countOfplayersPicked = {}
-entries = getUserEntryIds(yala_on_scasse_league_id)
-for entry in entries:
-	elements = getplayersPickedForEntryId(entry)
-	for element in elements:
-		if element in countOfplayersPicked:
-			countOfplayersPicked[element] += 1
-		else:
-			countOfplayersPicked[element] = 1
+pageCount = 1
+while(True):
+	try:
+		entries = getUserEntryIds(reddit_pl_url, pageCount)
+		if entries is None:
+			break
 
-print countOfplayersPicked
+		print("parsing pageCount: " + str(pageCount))
+		for entry in entries:
+			elements = getplayersPickedForEntryId(entry)
+			for element in elements:
+				name = playerElementIdToNameMap[element]
+				if name in countOfplayersPicked:
+					countOfplayersPicked[name] += 1
+				else:
+					countOfplayersPicked[name] = 1
+		pageCount += 1
+	except:
+		pass
+
+listOfcountOfplayersPicked = sorted(countOfplayersPicked.items(), key=lambda x: x[1], reverse=True)
+
+with open('result.csv','w') as out:
+    csv_out=csv.writer(out)
+    csv_out.writerow(['name','num'])
+    for row in listOfcountOfplayersPicked:
+        csv_out.writerow(row)
+
+#print sorted(countOfplayersPicked.items(), key=lambda x: x[1])
+# print countOfplayersPicked
