@@ -15,7 +15,6 @@ ID_TEST = 1
 yala_on_scasse_league_id = 336217
 reddit_pl_url = 1459
 test_entry_id = 2677936
-didNotPassByGuy = True
 
 # player data: https://fantasy.premierleague.com/drf/bootstrap-static   (download it in a local file!)
 
@@ -32,14 +31,7 @@ def getUserEntryIds(league_id, ls_page):
 	entries = []
 
 	for player in standings:
-		# not sure if needed because probably we re not passing many times by Guy
-		if player["entry"] == 1313896:
-			if didNotPassByGuy:
-				didNotPassByGuy = False
-				print("passing by Guy")
-				entries.append(player["entry"])
-		else:
-			entries.append(player["entry"])
+		entries.append(player["entry"])
 
 	return entries
 
