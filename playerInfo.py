@@ -54,7 +54,7 @@ def getAllPlayersDetailedJson():
 		return d
 
 def writeToFile(countOfplayersPicked):
-	with open('result.csv','w') as out:
+	with open('result/result.csv','w') as out:
 		csv_out = csv.writer(out)
 		csv_out.writerow(['name','num'])
 		for row in countOfplayersPicked:
@@ -72,12 +72,12 @@ totalNumberOfPlayersCount = 0
 pageCount = 1
 while(True):
 	try:
-		entries = getUserEntryIds(reddit_pl_url, pageCount)
-		totalNumberOfPlayersCount += len(entries)
+		entries = getUserEntryIds(yala_on_scasse_league_id, pageCount)
 		if entries is None:
 			print("breaking as no more player entries")
 			break
 
+		totalNumberOfPlayersCount += len(entries)
 		print("parsing pageCount: " + str(pageCount) + " with total number of players so far:" + str(totalNumberOfPlayersCount))
 		for entry in entries:
 			elements = getplayersPickedForEntryId(entry)
@@ -91,7 +91,8 @@ while(True):
 		listOfcountOfplayersPicked = sorted(countOfplayersPicked.items(), key=lambda x: x[1], reverse=True)
 		writeToFile(listOfcountOfplayersPicked)
 		pageCount += 1
-	except:
+	except Exception, e:
+		print str(e)
 		pass
 
 #print sorted(countOfplayersPicked.items(), key=lambda x: x[1])
